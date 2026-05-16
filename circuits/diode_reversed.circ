@@ -1,0 +1,7 @@
+nextId 10
+COMP 1 Resistor 400 120 R 0 1
+COMP 3 VSource 360 200 V 1 5
+COMP 7 Diode 440 200 D 3 1e-12 1 0.02585
+WIRE 4 3 0 1 0 0
+WIRE 8 7 0 3 1 0
+WIRE 9 7 1 1 1 0

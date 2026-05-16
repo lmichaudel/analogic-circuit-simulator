@@ -1,0 +1,5 @@
+nextId 5
+COMP 1 Resistor 600 200 R2 0 10
+COMP 2 VSource 480 320 V2 1 5
+WIRE 3 2 0 1 0 1
+WIRE 4 2 1 1 1 0

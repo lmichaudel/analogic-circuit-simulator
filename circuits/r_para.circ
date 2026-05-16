@@ -1,0 +1,8 @@
+nextId 10
+COMP 1 VSource 280 140 V 5 5
+COMP 2 Resistor 400 140 R1 1 1
+COMP 3 Resistor 520 140 R2 1 1
+WIRE 4 1 0 2 0 1
+WIRE 7 2 0 3 0 0
+WIRE 8 3 1 2 1 0
+WIRE 9 2 1 1 1 0

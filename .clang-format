@@ -1,0 +1,4 @@
+Language: C
+BasedOnStyle: LLVM
+PointerAlignment: Left
+IndentWidth: 4
