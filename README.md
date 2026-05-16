@@ -1,8 +1,15 @@
-# Projet C++ 2025-2026
+# Analogic Circuit Simulator
 
-Lucas Michaudel, Anas Tariq, Achille Train-Lagarde.
+<div align="center">
+  <img src="pic/bjt.png" width="75%" />
+</div>
 
-# Pour compiler
+# 
+
+An analogic circuit solver, written in C++ as part of my engineering class.
+Made alongside my classmates Anas Tariq and Achille Train-Lagarde.
+
+# Compiling
 
 ```
 mkdir build
