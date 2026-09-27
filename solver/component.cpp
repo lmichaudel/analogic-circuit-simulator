@@ -6,7 +6,7 @@
 
 using namespace solver;
 
-std::vector<double> Component::characteristic(std::vector<double> voltages) {
+std::vector<double> Component::characteristic(std::vector<double> /*voltages*/) {
     return std::vector<double>(pins.size(), 0.0);
 }
 
@@ -74,11 +74,11 @@ ImVec2 Component::get_pin_world_pos(std::size_t i) const {
 Ground::Ground(std::string label) : Component(label) {
     pins.emplace_back(0, this);
 }
-std::vector<double> Ground::characteristic(std::vector<double> v) { return {0.0}; }
+std::vector<double> Ground::characteristic(std::vector<double> /*v*/) { return {0.0}; }
 std::vector<std::vector<double>> Ground::jacobian() { return {{0.0}}; }
 void Ground::update() {}
 
-ImVec2 Ground::get_pin_local_pos(std::size_t i) const { return {0, -COMP_GRID}; }
+ImVec2 Ground::get_pin_local_pos(std::size_t /*i*/) const { return {0, -COMP_GRID}; }
 
 void Ground::draw(ImDrawList* dl, ImU32 col) {
     dl->AddLine(transform({0, -COMP_GRID}), transform({0, COMP_GRID * 0.2f}), col, 1.5f);

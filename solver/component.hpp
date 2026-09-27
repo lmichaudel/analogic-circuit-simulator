@@ -42,7 +42,7 @@ namespace solver {
             virtual void update();
             virtual void advance() {}
             virtual void reset_state() {}
-            virtual void set_dt(double new_dt) {}
+            virtual void set_dt(double /*new_dt*/) {}
 
             virtual std::string get_type_name() const = 0;
             virtual bool render_properties() { return false; }
@@ -50,8 +50,8 @@ namespace solver {
             // Sérialisation
             virtual void serialize(std::ostream& os) const;
             static std::shared_ptr<Component> deserialize_line(const std::string& line);
-            virtual void serialize_attributes(std::ostream& os) const {}
-            virtual void deserialize_attributes(std::istream& is) {}
+            virtual void serialize_attributes(std::ostream& /*os*/) const {}
+            virtual void deserialize_attributes(std::istream& /*is*/) {}
 
             // Dessin
             virtual ImVec2 get_pin_local_pos(std::size_t i) const = 0;
