@@ -6,19 +6,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_compile_options(-Wall -Wextra -Wpedantic)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(GLFW REQUIRED glfw3)
-
-if(APPLE)
-    find_library(OPENGL_LIBRARY OpenGL REQUIRED)
-    find_library(COCOA_LIBRARY Cocoa REQUIRED)
-    find_library(IOKIT_LIBRARY IOKit REQUIRED)
-    set(EXTRA_LIBS ${OPENGL_LIBRARY} ${COCOA_LIBRARY} ${IOKIT_LIBRARY})
-else()
-    find_package(OpenGL REQUIRED)
-    set(EXTRA_LIBS OpenGL::GL X11 pthread dl m)
-endif()
-
 include_directories(
     .
     solver/
@@ -26,20 +13,18 @@ include_directories(
     editor/imgui/backends/
 )
 
-set(IMGUI_SRC
+set(IMGUI_CORE_SRC
     editor/imgui/imgui.cpp
     editor/imgui/imgui_draw.cpp
     editor/imgui/imgui_tables.cpp
     editor/imgui/imgui_widgets.cpp
-    editor/imgui/backends/imgui_impl_glfw.cpp
-    editor/imgui/backends/imgui_impl_opengl3.cpp
 )
 
 add_library(solver_core STATIC
     solver/circuit.cpp
     solver/component.cpp
     solver/solver.cpp
-    ${IMGUI_SRC}
+    ${IMGUI_CORE_SRC}
 )
 
 add_executable(test.o tests/test.cpp)
@@ -54,10 +39,30 @@ target_link_libraries(landscape.o solver_core)
 add_executable(rc_transient.o tests/rc_transient.cpp)
 target_link_libraries(rc_transient.o solver_core)
 
-add_executable(editor editor/editor.cpp ${IMGUI_SRC})
-target_link_libraries(editor
-    solver_core
-    ${GLFW_LIBRARIES}
-    ${EXTRA_LIBS}
-)
-target_compile_options(editor PRIVATE ${GLFW_CFLAGS})
+if(APPLE)
+    # macOS: Swift Editor with modern macOS look and feel
+    add_custom_target(editor ALL
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/editor-mac/build.sh
+        DEPENDS solver_core
+        COMMENT "Building native macOS Swift Circuit Simulator..."
+    )
+else()
+    # Windows & Linux: Dear ImGui + GLFW Editor
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GLFW REQUIRED glfw3)
+    find_package(OpenGL REQUIRED)
+    set(EXTRA_LIBS OpenGL::GL X11 pthread dl m)
+
+    set(IMGUI_BACKENDS_SRC
+        editor/imgui/backends/imgui_impl_glfw.cpp
+        editor/imgui/backends/imgui_impl_opengl3.cpp
+    )
+
+    add_executable(editor editor/editor.cpp ${IMGUI_BACKENDS_SRC})
+    target_link_libraries(editor
+        solver_core
+        ${GLFW_LIBRARIES}
+        ${EXTRA_LIBS}
+    )
+    target_compile_options(editor PRIVATE ${GLFW_CFLAGS})
+endif()
