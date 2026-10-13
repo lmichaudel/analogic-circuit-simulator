@@ -19,7 +19,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "bjt",
             title: "BJT Amplifier",
-            icon: "waveform",
+            icon: "waveform.path.ecg",
             content: """
             nextId 10
             COMP 1 Resistor 380 240 R1 0 1
@@ -36,7 +36,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "diode_clamp",
             title: "Diode Clamp",
-            icon: "arrow.up.and.down.square",
+            icon: "chart.line.uptrend.xyaxis",
             content: """
             nextId 11
             COMP 1 Resistor 400 120 R 0 1
@@ -53,7 +53,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "diode_forward",
             title: "Diode Forward",
-            icon: "triangle",
+            icon: "arrow.right.circle.fill",
             content: """
             nextId 7
             COMP 1 Resistor 400 120 R 0 1
@@ -67,7 +67,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "diode_reversed",
             title: "Diode Reversed",
-            icon: "triangle.fill",
+            icon: "shield.slash.fill",
             content: """
             nextId 10
             COMP 1 Resistor 400 120 R 0 1
@@ -81,7 +81,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "wheatstone",
             title: "Wheatstone Bridge",
-            icon: "rhombus",
+            icon: "diamond.fill",
             content: """
             nextId 12
             COMP 1 Resistor 340 160 R1 0 1
@@ -100,7 +100,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "r_serie",
             title: "Series Resistors",
-            icon: "link",
+            icon: "rectangle.split.3x1",
             content: """
             nextId 7
             COMP 1 VSource 280 140 V 5 5
@@ -114,7 +114,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "r_para",
             title: "Parallel Resistors",
-            icon: "equal",
+            icon: "distribute.vertical",
             content: """
             nextId 10
             COMP 1 VSource 280 140 V 5 5
@@ -129,7 +129,7 @@ public struct EmbeddedExamples {
         EmbeddedCircuitExample(
             id: "and",
             title: "Logic AND Gate",
-            icon: "square.split.diagonal.2x2",
+            icon: "cpu.fill",
             content: """
             nextId 27
             COMP 1 Resistor 480 160 R 0 10000

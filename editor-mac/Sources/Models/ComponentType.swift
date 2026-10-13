@@ -75,15 +75,15 @@ public enum ComponentType: String, CaseIterable, Identifiable {
     
     public var sfSymbol: String {
         switch self {
-        case .ground: return "arrow.down.to.line"
-        case .resistor: return "alternatingcurrent"
-        case .voltageSource: return "plus.slash.minus"
-        case .currentSource: return "arrow.up.circle"
-        case .switchComp: return "power"
-        case .diode: return "triangle.fill"
-        case .capacitor: return "pause"
-        case .transistor: return "point.3.filled.connected.triangle.path"
-        case .coil: return "skew"
+        case .ground: return "circle.bottomhalf.filled"
+        case .resistor: return "waveform.path"
+        case .voltageSource: return "bolt.circle.fill"
+        case .currentSource: return "arrow.up.circle.fill"
+        case .switchComp: return "switch.2"
+        case .diode: return "arrowtriangle.right.fill"
+        case .capacitor: return "slider.horizontal.2.square"
+        case .transistor: return "cpu"
+        case .coil: return "circle.grid.cross"
         }
     }
     
