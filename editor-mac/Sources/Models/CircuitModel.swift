@@ -107,6 +107,7 @@ public class CircuitModel: ObservableObject {
         }
         invalidateSimulation()
         isModified = true
+        objectWillChange.send()
         statusMessage = "Deleted component"
     }
     
@@ -115,6 +116,7 @@ public class CircuitModel: ObservableObject {
         comp.rotation = (comp.rotation + 1) % 4
         invalidateSimulation()
         isModified = true
+        objectWillChange.send()
         statusMessage = "Rotated \(comp.label)"
     }
     
