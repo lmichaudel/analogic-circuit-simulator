@@ -37,88 +37,114 @@ public struct CanvasView: View {
     
     public var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                // Background color matching macOS content area
-                Color(nsColor: .windowBackgroundColor)
-                    .ignoresSafeArea()
-                
-                // Drawing Canvas
-                Canvas { context, size in
-                    drawGrid(context: context, size: size)
-                    drawWires(context: context)
-                    drawActiveWirePreview(context: context)
-                    drawComponents(context: context)
-                    drawSimulationBadges(context: context)
+            ZStack(alignment: .topTrailing) {
+                // Interactive Schematic Canvas
+                ZStack {
+                    // Background color matching macOS content area
+                    Color(nsColor: .windowBackgroundColor)
+                        .ignoresSafeArea()
+                    
+                    // Drawing Canvas
+                    Canvas { context, size in
+                        drawGrid(context: context, size: size)
+                        drawWires(context: context)
+                        drawActiveWirePreview(context: context)
+                        drawComponents(context: context)
+                        drawSimulationBadges(context: context)
+                    }
+                    .drawingGroup() // Metal hardware acceleration
                 }
-                .drawingGroup() // Metal hardware acceleration
-            }
-            .contentShape(Rectangle())
-            .simultaneousGesture(
-                DragGesture(minimumDistance: 1, coordinateSpace: .local)
-                    .onChanged { value in
-                        handleDragChanged(value: value, in: geometry.size)
-                    }
-                    .onEnded { value in
-                        handleDragEnded(value: value)
-                    }
-            )
-            .simultaneousGesture(
-                MagnificationGesture()
-                    .onChanged { value in
-                        let delta = value / lastMagnification
-                        lastMagnification = value
-                        zoomAtScreenPoint(factor: delta, screenPt: currentMousePos)
-                    }
-                    .onEnded { _ in
-                        lastMagnification = 1.0
-                    }
-            )
-            .onTapGesture { location in
-                handleTap(at: location)
-            }
-            .onContinuousHover { phase in
-                switch phase {
-                case .active(let location):
-                    currentMousePos = location
-                    handleHover(at: location)
-                case .ended:
-                    hoveredPin = nil
+                .contentShape(Rectangle())
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 1, coordinateSpace: .local)
+                        .onChanged { value in
+                            handleDragChanged(value: value, in: geometry.size)
+                        }
+                        .onEnded { value in
+                            handleDragEnded(value: value)
+                        }
+                )
+                .simultaneousGesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            let delta = value / lastMagnification
+                            lastMagnification = value
+                            zoomAtScreenPoint(factor: delta, screenPt: currentMousePos)
+                        }
+                        .onEnded { _ in
+                            lastMagnification = 1.0
+                        }
+                )
+                .onTapGesture { location in
+                    handleTap(at: location)
                 }
-            }
-            .contextMenu {
-                if let comp = model.selectedComponent {
-                    Text("\(comp.label) (\(comp.type.displayName))")
-                        .font(.headline)
-                    Divider()
-                    Button {
-                        model.rotateSelected()
-                    } label: {
-                        Label("Rotate 90°", systemImage: "rotate.right")
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        currentMousePos = location
+                        handleHover(at: location)
+                    case .ended:
+                        hoveredPin = nil
                     }
-                    Button {
-                        model.duplicateSelected()
-                    } label: {
-                        Label("Duplicate", systemImage: "plus.square.on.square")
-                    }
-                    Button(role: .destructive) {
-                        model.removeSelected()
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    Divider()
                 }
-                
-                Section("Add Component Here") {
-                    ForEach(ComponentType.allCases) { type in
+                .contextMenu {
+                    if let comp = model.selectedComponent {
+                        Text("\(comp.label) (\(comp.type.displayName))")
+                            .font(.headline)
+                        Divider()
                         Button {
-                            let worldPos = screenToWorld(currentMousePos)
-                            model.addComponent(type: type, at: worldPos)
+                            model.rotateSelected()
                         } label: {
-                            Label(type.displayName, systemImage: type.sfSymbol)
+                            Label("Rotate 90°", systemImage: "rotate.right")
+                        }
+                        Button {
+                            model.duplicateSelected()
+                        } label: {
+                            Label("Duplicate", systemImage: "plus.square.on.square")
+                        }
+                        Button(role: .destructive) {
+                            model.removeSelected()
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        Divider()
+                    }
+                    
+                    Section("Add Component Here") {
+                        ForEach(ComponentType.allCases) { type in
+                            Button {
+                                let worldPos = screenToWorld(currentMousePos)
+                                model.addComponent(type: type, at: worldPos)
+                            } label: {
+                                Label {
+                                    Text(type.displayName)
+                                } icon: {
+                                    Image(nsImage: ComponentIconView.menuImage(for: type))
+                                }
+                            }
                         }
                     }
                 }
+                
+                // Floating Inspector overlay on component or wire selection
+                if let comp = model.selectedComponent {
+                    FloatingInspectorView(comp: comp, model: model)
+                        .padding(16)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing)),
+                            removal: .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                        ))
+                } else if let wire = model.selectedWire {
+                    FloatingWireInspector(wire: wire, model: model)
+                        .padding(16)
+                        .transition(.asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing)),
+                            removal: .opacity.combined(with: .scale(scale: 0.96, anchor: .topTrailing))
+                        ))
+                }
             }
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: model.selectedComponentId)
+            .animation(.spring(response: 0.28, dampingFraction: 0.8), value: model.selectedWireId)
             .onAppear {
                 setupTrackpadMonitor()
             }
@@ -131,8 +157,42 @@ public struct CanvasView: View {
     // MARK: - Trackpad Gesture Monitor
     private func setupTrackpadMonitor() {
         guard eventMonitor == nil else { return }
-        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.magnify, .scrollWheel, .smartMagnify, .rightMouseDown]) { event in
+        eventMonitor = NSEvent.addLocalMonitorForEvents(matching: [.magnify, .scrollWheel, .smartMagnify, .rightMouseDown, .keyDown]) { event in
             guard let window = NSApp.keyWindow, event.window == window else { return event }
+            
+            if event.type == .keyDown {
+                // If the user is currently editing inside a text field, let standard typing proceed
+                if let responder = window.firstResponder, responder.isKind(of: NSTextView.self) {
+                    return event
+                }
+                
+                // Key code 53: Escape (⎋) to deselect / dismiss floating inspector
+                if event.keyCode == 53 {
+                    if model.selectedComponentId != nil || model.selectedWireId != nil {
+                        model.selectedComponentId = nil
+                        model.selectedWireId = nil
+                        return nil
+                    }
+                }
+                
+                // Key code 51: Backspace / Delete (⌫), Key code 117: Forward Delete (⌦)
+                if event.keyCode == 51 || event.keyCode == 117 {
+                    if model.selectedComponentId != nil || model.selectedWireId != nil {
+                        model.removeSelected()
+                        return nil
+                    }
+                }
+                
+                // Key code 15: 'r' / 'R' to rotate selected component
+                if event.keyCode == 15 && !event.modifierFlags.contains(.command) && !event.modifierFlags.contains(.control) {
+                    if model.selectedComponentId != nil {
+                        model.rotateSelected()
+                        return nil
+                    }
+                }
+                
+                return event
+            }
             
             let winLoc = event.locationInWindow
             let winH = window.contentView?.frame.height ?? 800
@@ -358,27 +418,41 @@ public struct CanvasView: View {
     private func drawSimulationBadges(context: GraphicsContext) {
         guard model.simulationResult.isSimulated else { return }
         
-        let compMap = Dictionary(uniqueKeysWithValues: model.components.map { ($0.id, $0) })
+        let zoom = model.zoomScale
+        let pinV = model.simulationResult.pinVoltages
         
-        // Node Voltages
-        for (pid, voltage) in model.simulationResult.pinVoltages {
-            let cid = pid / 10
-            let pidx = pid % 10
-            guard let comp = compMap[cid] else { continue }
-            
-            let pinWorld = comp.getPinWorldPos(index: pidx)
-            let pinScreen = worldToScreen(pinWorld)
-            
-            let badgeText = String(format: "%.2f V", voltage)
-            let formatted = Text(badgeText)
-                .font(.system(size: max(8, 10 * model.zoomScale), weight: .semibold, design: .rounded))
-                .foregroundColor(Color.green)
-            
-            let badgePos = CGPoint(x: pinScreen.x + 12 * model.zoomScale, y: pinScreen.y - 12 * model.zoomScale)
-            context.draw(formatted, at: badgePos, anchor: .bottomLeading)
+        // 1. Draw Voltage Arrows on Components
+        for comp in model.components {
+            if comp.type == .transistor {
+                // For BJT: Draw arrows for Vce (collector-emitter) and Vbe (base-emitter)
+                if let vc = pinV[comp.id * 10 + 1], let ve = pinV[comp.id * 10 + 2] {
+                    let pc = worldToScreen(comp.getPinWorldPos(index: 1))
+                    let pe = worldToScreen(comp.getPinWorldPos(index: 2))
+                    let diff = vc - ve
+                    let (from, to) = diff >= 0 ? (pe, pc) : (pc, pe)
+                    drawVoltageArrow(context: context, from: from, to: to, voltage: abs(diff), label: "Vce", normalSign: 1.0)
+                }
+                if let vb = pinV[comp.id * 10 + 0], let ve = pinV[comp.id * 10 + 2] {
+                    let pb = worldToScreen(comp.getPinWorldPos(index: 0))
+                    let pe = worldToScreen(comp.getPinWorldPos(index: 2))
+                    let diff = vb - ve
+                    let (from, to) = diff >= 0 ? (pe, pb) : (pb, pe)
+                    drawVoltageArrow(context: context, from: from, to: to, voltage: abs(diff), label: "Vbe", normalSign: -1.0)
+                }
+            } else if comp.pinCount == 2 {
+                // 2-terminal components: Resistor, VoltageSource, CurrentSource, Switch, Diode, Capacitor, Coil
+                if let v0 = pinV[comp.id * 10 + 0], let v1 = pinV[comp.id * 10 + 1] {
+                    let p0 = worldToScreen(comp.getPinWorldPos(index: 0))
+                    let p1 = worldToScreen(comp.getPinWorldPos(index: 1))
+                    let diff = v0 - v1
+                    // Arrow points toward the higher potential terminal
+                    let (from, to) = diff >= 0 ? (p1, p0) : (p0, p1)
+                    drawVoltageArrow(context: context, from: from, to: to, voltage: abs(diff))
+                }
+            }
         }
         
-        // Component Branch Currents
+        // 2. Component Branch Currents
         for (label, current) in model.simulationResult.componentCurrents {
             guard let comp = model.components.first(where: { $0.label == label }) else { continue }
             let compScreen = worldToScreen(comp.position)
@@ -393,11 +467,144 @@ public struct CanvasView: View {
             }
             
             let formatted = Text(badgeText)
-                .font(.system(size: max(8, 10 * model.zoomScale), weight: .bold, design: .rounded))
+                .font(.system(size: max(8, 10 * zoom), weight: .bold, design: .rounded))
                 .foregroundColor(Color.red)
             
-            let badgePos = CGPoint(x: compScreen.x, y: compScreen.y + CircuitModel.grid * 1.5 * model.zoomScale)
+            let badgePos = CGPoint(x: compScreen.x, y: compScreen.y + CircuitModel.grid * 1.5 * zoom)
             context.draw(formatted, at: badgePos, anchor: .top)
+        }
+    }
+    
+    // MARK: - Voltage Arrow Drawing
+    private func drawVoltageArrow(
+        context: GraphicsContext,
+        from: CGPoint,
+        to: CGPoint,
+        voltage: Double,
+        label: String? = nil,
+        normalSign: CGFloat = 1.0
+    ) {
+        let zoom = model.zoomScale
+        let dx = to.x - from.x
+        let dy = to.y - from.y
+        let len = hypot(dx, dy)
+        guard len > 1.0 else { return }
+        
+        let ux = dx / len
+        let uy = dy / len
+        let nx = -uy
+        let ny = ux
+        
+        // Prefer normal pointing upward/leftward so arrows arch away consistently
+        let preferUp = (ny < -0.01 || (abs(ny) <= 0.01 && nx < 0))
+        let baseNormX = preferUp ? nx : -nx
+        let baseNormY = preferUp ? ny : -ny
+        let normX = baseNormX * normalSign
+        let normY = baseNormY * normalSign
+        
+        let pinOffset = 6.0 * zoom
+        let archHeight = 24.0 * zoom
+        let startPt = CGPoint(x: from.x + normX * pinOffset, y: from.y + normY * pinOffset)
+        let endPt = CGPoint(x: to.x + normX * pinOffset, y: to.y + normY * pinOffset)
+        let midPt = CGPoint(x: (from.x + to.x) / 2.0, y: (from.y + to.y) / 2.0)
+        let ctrlPt = CGPoint(x: midPt.x + normX * (pinOffset + archHeight), y: midPt.y + normY * (pinOffset + archHeight))
+        
+        // Arrowhead geometry
+        let headLen = 8.5 * zoom
+        let headWidth = 4.2 * zoom
+        
+        // Tangent vector entering endPt
+        let tax = endPt.x - ctrlPt.x
+        let tay = endPt.y - ctrlPt.y
+        let taLen = hypot(tax, tay)
+        let tux = taLen > 0.001 ? tax / taLen : ux
+        let tuy = taLen > 0.001 ? tay / taLen : uy
+        
+        let arrowBase = CGPoint(x: endPt.x - tux * headLen, y: endPt.y - tuy * headLen)
+        let tnx = -tuy
+        let tny = tux
+        let arrowLeft = CGPoint(x: arrowBase.x + tnx * headWidth, y: arrowBase.y + tny * headWidth)
+        let arrowRight = CGPoint(x: arrowBase.x - tnx * headWidth, y: arrowBase.y - tny * headWidth)
+        
+        let arrowColor = Color(nsColor: .systemGreen)
+        
+        // Draw the curved shaft
+        var shaft = Path()
+        shaft.move(to: startPt)
+        if voltage >= 1e-4 {
+            shaft.addQuadCurve(to: arrowBase, control: ctrlPt)
+        } else {
+            shaft.addQuadCurve(to: endPt, control: ctrlPt)
+        }
+        context.stroke(
+            shaft,
+            with: .color(arrowColor),
+            style: StrokeStyle(lineWidth: 1.6 * zoom, lineCap: .round, lineJoin: .round)
+        )
+        
+        // Draw arrowhead or zero-voltage endpoints
+        if voltage >= 1e-4 {
+            var head = Path()
+            head.move(to: endPt)
+            head.addLine(to: arrowLeft)
+            head.addLine(to: arrowRight)
+            head.closeSubpath()
+            context.fill(head, with: .color(arrowColor))
+        } else {
+            let r = 2.0 * zoom
+            context.fill(Path(ellipseIn: CGRect(x: startPt.x - r, y: startPt.y - r, width: 2 * r, height: 2 * r)), with: .color(arrowColor))
+            context.fill(Path(ellipseIn: CGRect(x: endPt.x - r, y: endPt.y - r, width: 2 * r, height: 2 * r)), with: .color(arrowColor))
+        }
+        
+        // Peak of the curve at t = 0.5
+        let apex = CGPoint(
+            x: 0.25 * startPt.x + 0.5 * ctrlPt.x + 0.25 * endPt.x,
+            y: 0.25 * startPt.y + 0.5 * ctrlPt.y + 0.25 * endPt.y
+        )
+        
+        let vText: String
+        if let customLabel = label {
+            vText = "\(customLabel): \(formatVoltage(voltage))"
+        } else {
+            vText = formatVoltage(voltage)
+        }
+        
+        let fontSize = max(8.5, 9.5 * zoom)
+        let charWidth = fontSize * 0.62
+        let badgeW = CGFloat(vText.count) * charWidth + 10.0 * zoom
+        let badgeH = fontSize + 6.0 * zoom
+        let badgeCenter = CGPoint(x: apex.x + normX * 4.0 * zoom, y: apex.y + normY * 4.0 * zoom)
+        let badgeRect = CGRect(x: badgeCenter.x - badgeW / 2.0, y: badgeCenter.y - badgeH / 2.0, width: badgeW, height: badgeH)
+        
+        // Background pill badge
+        context.fill(
+            Path(roundedRect: badgeRect, cornerRadius: 4.0 * zoom),
+            with: .color(Color(nsColor: .windowBackgroundColor).opacity(0.92))
+        )
+        context.stroke(
+            Path(roundedRect: badgeRect, cornerRadius: 4.0 * zoom),
+            with: .color(arrowColor.opacity(0.4)),
+            lineWidth: 1.0 * zoom
+        )
+        
+        let textObj = Text(vText)
+            .font(.system(size: fontSize, weight: .bold, design: .rounded))
+            .foregroundColor(arrowColor)
+        context.draw(textObj, at: badgeCenter, anchor: .center)
+    }
+    
+    private func formatVoltage(_ v: Double) -> String {
+        let absV = abs(v)
+        if absV >= 1000.0 {
+            return String(format: "%.2f kV", v / 1000.0)
+        } else if absV >= 0.1 {
+            return String(format: "%.2f V", v)
+        } else if absV >= 0.0001 {
+            return String(format: "%.1f mV", v * 1000.0)
+        } else if absV > 0 {
+            return String(format: "%.1f µV", v * 1_000_000.0)
+        } else {
+            return "0.00 V"
         }
     }
     

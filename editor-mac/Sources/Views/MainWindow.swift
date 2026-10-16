@@ -1,10 +1,10 @@
 import Foundation
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 public struct MainWindow: View {
     @StateObject var model = CircuitModel()
-    @State private var showInspector: Bool = true
     
     public init() {}
     
@@ -14,11 +14,8 @@ public struct MainWindow: View {
         } detail: {
             CanvasView(model: model)
                 .frame(minWidth: 500)
-                .inspector(isPresented: $showInspector) {
-                    InspectorView(model: model)
-                        .inspectorColumnWidth(min: 260, ideal: 280, max: 360)
-                }
         }
+        .toolbar(removing: .sidebarToggle)
         .navigationTitle(model.documentTitle + (model.isModified ? " — Edited" : ""))
         .navigationSubtitle("\(model.components.count) components, \(model.wires.count) wires • \(model.statusMessage)")
         .toolbar {
@@ -26,9 +23,9 @@ public struct MainWindow: View {
                 Button {
                     openFileDialog()
                 } label: {
-                    Label("Open", systemImage: "folder")
+                    Label("Load", systemImage: "folder")
                 }
-                .help("Open Circuit (.circ / .cir)")
+                .help("Load Circuit (.circ / .cir)")
                 
                 Button {
                     saveFileDialog()
@@ -54,78 +51,25 @@ public struct MainWindow: View {
                 .help("Run Circuit Simulation (⌘B)")
                 .disabled(model.isSimulating)
             }
-            
-            ToolbarItemGroup(placement: .primaryAction) {
-                // Edit Actions ControlGroup
-                ControlGroup {
-                    Button {
-                        model.rotateSelected()
-                    } label: {
-                        Image(systemName: "rotate.right")
-                    }
-                    .disabled(model.selectedComponent == nil)
-                    .help("Rotate 90° (⌘R)")
+        }
+        .background {
+            // Window-wide keyboard shortcut handlers
+            Group {
+                Button("") { openFileDialog() }
+                    .keyboardShortcut("o", modifiers: [.command])
+                Button("") { saveFileDialog() }
+                    .keyboardShortcut("s", modifiers: [.command])
+                Button("") { model.removeSelected() }
+                    .keyboardShortcut(.delete, modifiers: [])
+                Button("") { model.removeSelected() }
+                    .keyboardShortcut(.deleteForward, modifiers: [])
+                Button("") { model.rotateSelected() }
                     .keyboardShortcut("r", modifiers: [.command])
-                    
-                    Button {
-                        model.duplicateSelected()
-                    } label: {
-                        Image(systemName: "plus.square.on.square")
-                    }
-                    .disabled(model.selectedComponent == nil)
-                    .help("Duplicate (⌘D)")
+                Button("") { model.duplicateSelected() }
                     .keyboardShortcut("d", modifiers: [.command])
-                    
-                    Button(role: .destructive) {
-                        model.removeSelected()
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                    .disabled(model.selectedComponent == nil && model.selectedWire == nil)
-                    .help("Delete Selected (⌫)")
-                }
-                
-                // Zoom ControlGroup
-                ControlGroup {
-                    Button {
-                        model.zoomScale = max(0.25, model.zoomScale - 0.15)
-                    } label: {
-                        Image(systemName: "minus.magnifyingglass")
-                    }
-                    .help("Zoom Out (⌘-)")
-                    .keyboardShortcut("-", modifiers: [.command])
-                    
-                    Button {
-                        model.zoomScale = 1.0
-                        model.panOffset = .zero
-                    } label: {
-                        Text("\(Int(round(model.zoomScale * 100)))%")
-                            .font(.caption2)
-                            .monospacedDigit()
-                    }
-                    .help("Reset Zoom to 100% (⌘0)")
-                    .keyboardShortcut("0", modifiers: [.command])
-                    
-                    Button {
-                        model.zoomScale = min(4.0, model.zoomScale + 0.15)
-                    } label: {
-                        Image(systemName: "plus.magnifyingglass")
-                    }
-                    .help("Zoom In (⌘+)")
-                    .keyboardShortcut("+", modifiers: [.command])
-                }
-                
-                // Toggle Inspector Button
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showInspector.toggle()
-                    }
-                } label: {
-                    Image(systemName: "sidebar.trailing")
-                }
-                .help("Toggle Inspector Panel (⌥⌘I)")
-                .keyboardShortcut("i", modifiers: [.command, .option])
             }
+            .frame(width: 0, height: 0)
+            .opacity(0)
         }
     }
     
@@ -146,29 +90,60 @@ public struct MainWindow: View {
     // MARK: - Native File Dialogs
     private func openFileDialog() {
         let panel = NSOpenPanel()
-        panel.allowedContentTypes = []
-        panel.allowsMultipleSelection = false
-        panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.title = "Open Circuit Schematic"
+        panel.canChooseDirectories = false
+        panel.allowsMultipleSelection = false
+        panel.title = "Load Circuit Schematic"
+        panel.prompt = "Load"
+        panel.allowsOtherFileTypes = true
         
-        if panel.runModal() == .OK, let url = panel.url {
-            _ = model.load(from: url)
+        var types: [UTType] = [.plainText, .data]
+        if let circType = UTType(filenameExtension: "circ") {
+            types.append(circType)
+        }
+        if let cirType = UTType(filenameExtension: "cir") {
+            types.append(cirType)
+        }
+        panel.allowedContentTypes = types
+        
+        let targetWindow = NSApp.keyWindow ?? NSApp.mainWindow
+        if let window = targetWindow {
+            panel.beginSheetModal(for: window) { response in
+                if response == .OK, let url = panel.url {
+                    _ = model.load(from: url)
+                }
+            }
+        } else {
+            if panel.runModal() == .OK, let url = panel.url {
+                _ = model.load(from: url)
+            }
         }
     }
     
     private func saveFileDialog() {
-        if let existing = model.currentFileURL {
-            _ = model.save(to: existing)
-            return
-        }
-        
         let panel = NSSavePanel()
         panel.title = "Save Circuit Schematic"
+        panel.prompt = "Save"
         panel.nameFieldStringValue = model.documentTitle.hasSuffix(".circ") ? model.documentTitle : "\(model.documentTitle).circ"
+        panel.allowsOtherFileTypes = true
         
-        if panel.runModal() == .OK, let url = panel.url {
-            _ = model.save(to: url)
+        var types: [UTType] = [.plainText, .data]
+        if let circType = UTType(filenameExtension: "circ") {
+            types.insert(circType, at: 0)
+        }
+        panel.allowedContentTypes = types
+        
+        let targetWindow = NSApp.keyWindow ?? NSApp.mainWindow
+        if let window = targetWindow {
+            panel.beginSheetModal(for: window) { response in
+                if response == .OK, let url = panel.url {
+                    _ = model.save(to: url)
+                }
+            }
+        } else {
+            if panel.runModal() == .OK, let url = panel.url {
+                _ = model.save(to: url)
+            }
         }
     }
 }
