@@ -47,6 +47,7 @@ public class CircuitModel: ObservableObject {
     @Published public var solverMethod: SolverMethod = .newtonRaphson
     @Published public var isSimulating: Bool = false
     @Published public var simulationResult: SimulationResult = .empty
+    @Published public var showCurrentIndicators: Bool = false
     
     // File state
     @Published public var currentFileURL: URL? = nil

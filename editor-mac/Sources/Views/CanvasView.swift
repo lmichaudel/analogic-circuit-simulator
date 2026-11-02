@@ -452,26 +452,28 @@ public struct CanvasView: View {
             }
         }
         
-        // 2. Component Branch Currents
-        for (label, current) in model.simulationResult.componentCurrents {
-            guard let comp = model.components.first(where: { $0.label == label }) else { continue }
-            let compScreen = worldToScreen(comp.position)
-            
-            let badgeText: String
-            if abs(current) < 1e-4 {
-                badgeText = String(format: "%.2f µA", current * 1e6)
-            } else if abs(current) < 1.0 {
-                badgeText = String(format: "%.2f mA", current * 1e3)
-            } else {
-                badgeText = String(format: "%.2f A", current)
+        // 2. Component Branch Currents (disabled by default)
+        if model.showCurrentIndicators {
+            for (label, current) in model.simulationResult.componentCurrents {
+                guard let comp = model.components.first(where: { $0.label == label }) else { continue }
+                let compScreen = worldToScreen(comp.position)
+                
+                let badgeText: String
+                if abs(current) < 1e-4 {
+                    badgeText = String(format: "%.2f µA", current * 1e6)
+                } else if abs(current) < 1.0 {
+                    badgeText = String(format: "%.2f mA", current * 1e3)
+                } else {
+                    badgeText = String(format: "%.2f A", current)
+                }
+                
+                let formatted = Text(badgeText)
+                    .font(.system(size: max(8, 10 * zoom), weight: .bold, design: .rounded))
+                    .foregroundColor(Color.red)
+                
+                let badgePos = CGPoint(x: compScreen.x, y: compScreen.y + CircuitModel.grid * 1.5 * zoom)
+                context.draw(formatted, at: badgePos, anchor: .top)
             }
-            
-            let formatted = Text(badgeText)
-                .font(.system(size: max(8, 10 * zoom), weight: .bold, design: .rounded))
-                .foregroundColor(Color.red)
-            
-            let badgePos = CGPoint(x: compScreen.x, y: compScreen.y + CircuitModel.grid * 1.5 * zoom)
-            context.draw(formatted, at: badgePos, anchor: .top)
         }
     }
     
