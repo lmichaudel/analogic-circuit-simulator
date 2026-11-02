@@ -6,7 +6,7 @@ An interactive analog circuit schematic editor and SPICE-style nonlinear DC oper
 The integrated editor allows users to place discrete analog components, route interconnections, configure circuit parameters, and solve for node voltages and branch currents using numerical iterative methods.
 
 <div align="center">
-  <img src="pic/swift-editor.png" width="75%" />
+  <img src="pic/swift-editor.png" width="100%" />
 </div>
 
 ---
