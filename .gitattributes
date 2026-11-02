@@ -1,0 +1,2 @@
+# Ignore vendored ImGui library from GitHub repository language statistics
+editor/imgui/** linguist-vendored
